@@ -46,6 +46,7 @@ static NSString * const kTableViewCellContentView = @"UITableViewCellContentView
 @implementation SWTableViewCell {
     UIView *_contentCellView;
     BOOL layoutUpdating;
+    BOOL _isResetState;
 }
 
 #pragma mark Initializers
@@ -88,13 +89,14 @@ static NSString * const kTableViewCellContentView = @"UITableViewCellContentView
     _contentCellView = [[UIView alloc] init];
     [self.cellScrollView addSubview:_contentCellView];
     
+    [self contentView];
     // Add the cell scroll view to the cell
     UIView *contentViewParent = self;
     UIView *clipViewParent = self.cellScrollView;
-    if (![NSStringFromClass([[self.subviews objectAtIndex:0] class]) isEqualToString:kTableViewCellContentView])
-    {
+    UIView *firstView = [self.subviews firstObject];
+    if (nil == firstView || ![NSStringFromClass([firstView class]) isEqualToString:kTableViewCellContentView]) {
         // iOS 7
-        contentViewParent = [self.subviews objectAtIndex:0];
+        contentViewParent = firstView;
         clipViewParent = self;
     }
     NSArray *cellSubviews = [contentViewParent subviews];
@@ -310,7 +312,7 @@ static NSString * const kTableViewPanState = @"state";
     
     self.cellScrollView.contentSize = CGSizeMake(CGRectGetWidth(self.frame) + [self utilityButtonsPadding], CGRectGetHeight(self.frame));
     
-    if (!self.cellScrollView.isTracking && !self.cellScrollView.isDecelerating)
+    if (!self.cellScrollView.isTracking && !self.cellScrollView.isDecelerating && !_isResetState)
     {
         self.cellScrollView.contentOffset = [self contentOffsetForCellState:_cellState];
     }
@@ -491,6 +493,7 @@ static NSString * const kTableViewPanState = @"state";
 {
     if (_cellState != kCellStateCenter)
     {
+        _isResetState = animated ? YES : NO;
         [self.cellScrollView setContentOffset:[self contentOffsetForCellState:kCellStateCenter] animated:animated];
         
         if ([self.delegate respondsToSelector:@selector(swipeableTableViewCell:scrollingToState:)])
@@ -770,6 +773,7 @@ static NSString * const kTableViewPanState = @"state";
     if (self.delegate && [self.delegate respondsToSelector:@selector(swipeableTableViewCellDidEndScrolling:)]) {
         [self.delegate swipeableTableViewCellDidEndScrolling:self];
     }
+    _isResetState = NO;
 }
 
 -(void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate
